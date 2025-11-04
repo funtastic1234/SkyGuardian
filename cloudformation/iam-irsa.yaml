@@ -1,0 +1,53 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: SkyGuardian - IRSA roles for S3, OpenSearch, Rekognition access
+
+Parameters:
+  ClusterOIDCProviderArn:
+    Type: String
+    Description: EKS Cluster OIDC Provider ARN
+  Namespace:
+    Type: String
+    Default: skyguardian
+  ServiceAccountName:
+    Type: String
+    Default: agentcore-sa
+
+Resources:
+  AgentCoreRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !Ref ClusterOIDCProviderArn
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                oidc.eks.amazonaws.com/id/${aws:userid}:sub: !Sub system:serviceaccount:${Namespace}:${ServiceAccountName}
+      Policies:
+        - PolicyName: skyguardian-access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - aoss:APIAccessAll
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - rekognition:DetectLabels
+                  - rekognition:DetectFaces
+                  - rekognition:DetectModerationLabels
+                Resource: '*'
+
+Outputs:
+  AgentCoreRoleArn:
+    Value: !GetAtt AgentCoreRole.Arn
+

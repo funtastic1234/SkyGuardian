@@ -1,0 +1,58 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: SkyGuardian - OpenSearch Serverless for RAG index
+
+Parameters:
+  CollectionName:
+    Type: String
+    Default: skyguardian-rag
+  EncryptionPolicyName:
+    Type: String
+    Default: skyguardian-rag-encrypt
+  NetworkPolicyName:
+    Type: String
+    Default: skyguardian-rag-network
+
+Resources:
+  RAGCollection:
+    Type: AWS::OpenSearchServerless::Collection
+    Properties:
+      Name: !Ref CollectionName
+      Type: VECTORSEARCH
+      Description: RAG vector index collection for SkyGuardian
+
+  EncryptionPolicy:
+    Type: AWS::OpenSearchServerless::SecurityPolicy
+    Properties:
+      Name: !Ref EncryptionPolicyName
+      Type: encryption
+      Policy:
+        Fn::Sub: |
+          {
+            "Rules": [{
+              "ResourceType": "collection",
+              "Resource": ["collection/${CollectionName}"]
+            }],
+            "AWSOwnedKey": true
+          }
+
+  NetworkPolicy:
+    Type: AWS::OpenSearchServerless::SecurityPolicy
+    Properties:
+      Name: !Ref NetworkPolicyName
+      Type: network
+      Policy:
+        Fn::Sub: |
+          [{
+            "Rules": [{
+              "ResourceType": "collection",
+              "Resource": ["collection/${CollectionName}"]
+            }],
+            "AllowFromPublic": true
+          }]
+
+Outputs:
+  CollectionId:
+    Value: !GetAtt RAGCollection.Id
+  CollectionArn:
+    Value: !GetAtt RAGCollection.Arn
+

@@ -1,0 +1,96 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: skyguardian
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ngc-secret
+  namespace: skyguardian
+type: Opaque
+stringData:
+  api-key: "REPLACE_WITH_NGC_API_KEY"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nemotron-8b-reasoning
+  namespace: skyguardian
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nemotron-reasoning
+  template:
+    metadata:
+      labels:
+        app: nemotron-reasoning
+    spec:
+      nodeSelector:
+        node-type: gpu-inference
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - name: nemotron-nim
+        image: nvcr.io/nim/meta/llama-3.1-nemotron-nano-8b-instruct:1.0.0
+        env:
+        - name: NGC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: ngc-secret
+              key: api-key
+        ports:
+        - containerPort: 8000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nemotron-reasoning-service
+  namespace: skyguardian
+spec:
+  selector:
+    app: nemotron-reasoning
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: embedding-nim
+  namespace: skyguardian
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: embedding-nim
+  template:
+    metadata:
+      labels:
+        app: embedding-nim
+    spec:
+      containers:
+      - name: embedding-nim
+        image: nvcr.io/nim/nvidia/nv-embedqa-e5-v5:1.0.0
+        ports:
+        - containerPort: 8000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: embedding-nim-service
+  namespace: skyguardian
+spec:
+  selector:
+    app: embedding-nim
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+  type: ClusterIP
+

@@ -1,0 +1,102 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: SkyGuardian - EKS Cluster with GPU and CPU node groups (us-west-2)
+
+Parameters:
+  ClusterName:
+    Type: String
+    Default: skyguardian-cluster
+  EksVersion:
+    Type: String
+    Default: '1.29'
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: Existing VPC Id
+  PrivateSubnets:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Private subnets for EKS nodes
+
+Resources:
+  EksCluster:
+    Type: AWS::EKS::Cluster
+    Properties:
+      Name: !Ref ClusterName
+      Version: !Ref EksVersion
+      RoleArn: !GetAtt EksClusterRole.Arn
+      ResourcesVpcConfig:
+        SubnetIds: !Ref PrivateSubnets
+        EndpointPrivateAccess: true
+        EndpointPublicAccess: false
+
+  EksClusterRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: eks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+
+  NodeGroupGPU:
+    Type: AWS::EKS::Nodegroup
+    Properties:
+      ClusterName: !Ref ClusterName
+      NodegroupName: gpu-nodes
+      NodeRole: !GetAtt NodeInstanceRole.Arn
+      Subnets: !Ref PrivateSubnets
+      ScalingConfig:
+        MinSize: 0
+        DesiredSize: 1
+        MaxSize: 1
+      AmiType: AL2_x86_64_GPU
+      InstanceTypes:
+        - g5.xlarge
+      Labels:
+        node-type: gpu-inference
+      Taints:
+        - Key: nvidia.com/gpu
+          Value: 'true'
+          Effect: NO_SCHEDULE
+
+  NodeGroupCPU:
+    Type: AWS::EKS::Nodegroup
+    Properties:
+      ClusterName: !Ref ClusterName
+      NodegroupName: cpu-nodes
+      NodeRole: !GetAtt NodeInstanceRole.Arn
+      Subnets: !Ref PrivateSubnets
+      ScalingConfig:
+        MinSize: 0
+        DesiredSize: 1
+        MaxSize: 2
+      AmiType: AL2_x86_64
+      InstanceTypes:
+        - m5.large
+      Labels:
+        node-type: cpu
+
+  NodeInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+
+Outputs:
+  ClusterName:
+    Value: !Ref ClusterName
+  ClusterArn:
+    Value: !GetAtt EksCluster.Arn
+

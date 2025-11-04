@@ -1,0 +1,43 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+metadata:
+  name: skyguardian-cluster
+  region: us-west-2
+
+managedNodeGroups:
+  - name: nemotron-gpu-nodes
+    instanceType: g5.xlarge
+    desiredCapacity: 1
+    minSize: 0
+    maxSize: 1
+    labels:
+      node-type: gpu-inference
+    taints:
+      - key: nvidia.com/gpu
+        value: "true"
+        effect: NoSchedule
+    iam:
+      withAddonPolicies:
+        cloudWatch: true
+
+  - name: cpu-nodes
+    instanceType: m5.large
+    desiredCapacity: 1
+    minSize: 0
+    maxSize: 2
+    labels:
+      node-type: cpu
+    iam:
+      withAddonPolicies:
+        cloudWatch: true
+
+iam:
+  withOIDC: true
+
+addons:
+  - name: vpc-cni
+  - name: coredns
+  - name: kube-proxy
+  - name: aws-ebs-csi-driver
+  - name: nvidia-device-plugin
+
