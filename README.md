@@ -8,7 +8,7 @@
 
 Every year, thousands of people go missing in wilderness areas, national parks, and remote locations where traditional search-and-rescue operations face critical time delays. The first 24-48 hours are crucial for survival, yet conventional helicopter searches cost **$3,000+ per hour** and can take hours or days to deploy.
 
-Having previously won first place in an AWS competition with a Greengrass-powered search-and-rescue drone platform, I witnessed firsthand how edge-AI could revolutionize emergency response. The tragic reality is that many missing persons die not from their initial predicament, but from the time it takes to find them.
+After building an AWS Greengrass–powered search-and-rescue drone prototype, I saw firsthand how edge-AI can transform emergency response. The tragic reality is that many missing persons die not from their initial predicament, but from the time it takes to find them.
 
 **My driving question became:** *Can we deploy intelligent, autonomous drones that detect missing persons in real-time, coordinate rescue efforts, and operate even when communication infrastructure fails?*
 
